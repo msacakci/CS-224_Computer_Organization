@@ -1,0 +1,332 @@
+CS224
+Lab No. 1
+Section No. 001
+Metehan Saçakçı
+21802788
+
+# Part 1 #
+
+# Metehan Sacakci - 21802788
+.data
+	array: .word 1, 5, 5, 1, 5, 5, 1
+	arrsize: .word 7
+	
+	positive: .asciiz "The above array is symmetric" 
+	negative: .asciiz "The above array is not symmetric" 
+
+# int result; -> $s0 = result
+# int i; -> $s1 = i
+# int size -> $s2 = size
+# int $s3 = size - 1 - i
+# int firstElement -> $t0 = firstElement
+# int second element -> $t1 = secondElement
+
+.text
+	addi $s0, $zero, 1 # result = 1
+	addi $s1, $zero, 0 # i = 0
+	lw $s2, arrsize # size = arrsize
+	
+	la $t0, array # array base address = $t0
+	
+	la $t1, array # array end base address = $t1
+	
+	sub $s3, $s2, $s1 # s3 = size - i
+	sub $s3, $s3, 1 # s3 = size - i - 1
+	sll $s3, $s3, 2 # s3 = 4*(size -i - 1)
+	
+	add $t1, $t1, $s3
+	
+	#la $t1, array
+
+	# for ( i = arrsize - 1)
+	
+	for:
+	  beq $s1, $s2, done  # i == size brench to done
+	  
+	  lw $t2, ($t0) # $t2 = array[i]
+	  lw $t3, ($t1) # $t3 = array[size - i - 1]
+	  
+	  bne $t2, $t3, if
+	  j forCont
+	  if:
+	    add $s0, $zero, $zero # result = 0
+	    j forCont
+	
+	forCont:  	 	 	   	 	 	 
+	  addi $t0, $t0, 4 # array + 4	  
+	  addi $t1, $t1, -4 # arrayEnd - 4 
+	  addi $s1, $s1, 1 # i = i + 1
+	  j for
+	  
+	done:
+	  bne $s0, $zero, positiveResult
+	  
+	  j negativeResult
+	  positiveResult:
+	    la $a0, positive
+	    li $v0, 4
+	    syscall
+	    j final
+	    
+	  beq $s0, $zero, negativeResult
+	  	  
+	  negativeResult:
+	    la $a0, negative
+	    li $v0, 4
+	    syscall
+	    j final
+	    
+	final:    
+
+# End of Part 1 #
+
+# Part 2 #
+
+# Metehan Sacakci - 21802788
+.data
+	prompt: .asciiz "Please enter a, b, c, d, respectively for following operation x = a * (b - c) % d \n"
+	message: .asciiz "\nx is "
+
+.text
+	# Prompt to enter a b c d
+	li $v0, 4	
+	la $a0, prompt	
+	syscall
+	
+	# Get the a
+	li $v0, 5
+	syscall
+	
+	# Store the a in $t0
+	move $t0, $v0
+	
+	# Get the b
+	li $v0, 5
+	syscall
+	
+	# Store the b in $t1
+	move $t1, $v0
+	
+	# Get the c
+	li $v0, 5
+	syscall
+	
+	# Store the c in $t2
+	move $t2, $v0
+	
+	# Get the d
+	li $v0, 5
+	syscall
+	
+	# Store the d in $t3
+	move $t3, $v0
+	
+	# $t4 = b - c
+	sub $t4, $t1, $t2
+	
+	# a * $t4
+	mult $t0, $t4
+	mfhi $t5
+	mflo $t6
+	
+	# $t6 % d
+	div $t6, $t3
+	mfhi $t7 # result
+	
+	# Display message
+	li $v0, 4
+	la $a0, message
+	syscall
+	
+	# Print x
+	li $v0, 1
+	move $a0, $t7
+	syscall
+
+# End of Part 2 #
+
+# Part 3 #
+
+# Metehan Sacakci - 21802788
+.data
+	message1: .asciiz "Memory Address  Array Element\nPosition (hex)  Value (int)\n=============   ===========\n"
+	message2: .asciiz "\nMax: "
+	message3: .asciiz "\nMin: "
+	message4: .asciiz "\nAverage: "
+	empty: .asciiz "           "
+	empty2: .asciiz "\n"
+	array: .word 1, 5, 6, 2
+	arraysize: .word 4
+.text
+	#Printing message 1
+	li $v0, 4
+	la $a0, message1
+	syscall
+	
+	# t0 = array address
+	# t1 = array size
+	# t2 = index
+	# s0 = maxValue
+	# s1 = minValue
+	# s2 = average
+	# t4 = bool result 
+	
+	la $t0, array # $t0 = array base address
+	
+	lw $t3, ($t0) # $t3 = array[ address]
+	lw $s0, ($t0) # maxValue = array[ address]
+	lw $s1, ($t0) # minValue = array[ address]
+	
+	lw $t1, arraysize # $t1 = array size
+	
+	addi $t2, $zero, 0 # i = 0
+	
+	for:
+	  beq $t2, $t1, arrayFinished
+	  
+	  # Check max
+	  slt $t4, $s0, $t3
+	  bne $t4, $zero, updateMax 
+	  
+	forCont:
+	
+	  # Check min
+	  slt $t4, $t3, $s0
+	  bne $t4, $zero, updateMin
+	
+	forCont2:
+	
+	  # Display element address
+	  li $v0, 34                  
+	  move $a0, $t0
+	  syscall
+	  
+	  # Put space
+	  li $v0, 4
+	  la $a0, empty
+	  syscall
+
+	  # Display element's value
+	  li $v0, 1
+	  move $a0, $t3
+	  syscall
+	  
+	  # Skip to next line
+	  li $v0, 4
+	  la $a0, empty2
+	  syscall
+	  
+	  # To calculate average, sum of the all elements is needed
+	  add $s2, $s2, $t3	                                                                                                                      
+	  	                                                                                                                      	                                                                                                                      	                                                                                                                      
+	  addi $t0, $t0, 4 # address = address + 4
+	  lw $t3, ($t0)
+	  addi $t2, $t2, 1 # i = i + 1
+	  j for
+	  
+	updateMax:
+	  add $s0, $zero, $t3
+	  j forCont
+	
+	updateMin:
+	  add $s1, $zero, $t3    
+	  j forCont2
+	  	  	    	  	  	  	    	  	  
+	arrayFinished:
+	
+	  # s2 = average
+	  div $s2, $t1
+	  mflo $s2
+	  
+	  #Print average
+	  li $v0, 4
+	  la $a0, message4
+	  syscall
+	  
+	  li $v0, 1
+	  move $a0, $s2
+	  syscall 
+	  
+	  # Print max element
+	  li $v0, 4
+	  la $a0, message2
+	  syscall
+	  
+	  li $v0, 1
+	  move $a0, $s0
+	  syscall
+	  
+	  # Print min element
+	  li $v0, 4
+	  la $a0, message3
+	  syscall
+	  
+	  li $v0, 1
+	  move $a0, $s1
+	  syscall
+	            
+# End of Part 3 #
+
+# Part 4 #
+
+# Metehan Sacakci - 21802788
+.data
+	prompt: .asciiz "Please enter  B, C, D, respectively for following operation A = (B * C + D / B - C ) \n"
+	message: .asciiz "\nA is "
+
+.text
+	# Prompt to enter B C D
+	li $v0, 4	
+	la $a0, prompt	
+	syscall
+	
+	# Get the B
+	li $v0, 5
+	syscall
+	
+	# Store the B in $t0
+	move $t0, $v0
+	
+	# Get the C
+	li $v0, 5
+	syscall
+	
+	# Store the C in $t1
+	move $t1, $v0
+	
+	# Get the D
+	li $v0, 5
+	syscall
+	
+	# Store the D in $t2
+	move $t2, $v0
+	
+	# t3 = B * C
+	mult $t0, $t1
+	mflo $t3  
+	
+	# t4 = D / B
+	div $t2, $t0
+	mflo $t4
+	
+	# t3 = B * C + D / B
+	add $t3, $t3, $t4 
+	
+	# t3 = B * C + D / B - C
+	sub $t3, $t3, $t1
+	
+	# t3 = (B * C + D / B - C) % B
+	div $t3, $t0
+	mfhi $t3
+	
+	# Display message
+	li $v0, 4
+	la $a0, message
+	syscall
+	
+	# Print x
+	li $v0, 1
+	move $a0, $t3
+	syscall
+
+# End of Part 4 #
