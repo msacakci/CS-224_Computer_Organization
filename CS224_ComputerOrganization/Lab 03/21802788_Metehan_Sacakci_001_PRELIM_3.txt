@@ -1,0 +1,809 @@
+CS224
+Lab 3
+Section 001
+Metehan Saçakçı
+21802788
+
+# PART 1 #
+
+# Metehan Sacakci - 21802788
+
+.data
+	welcomeMessage: .asciiz "-Welcome to the Lab 3 and Part1-\n\n"
+	
+	totalAddInstructions: .asciiz "Total \"add\" instruction(s): "
+	totalLwInstructions: .asciiz "Total \"lw\" instruction(s): "
+	totalInstructions: .asciiz "Total both \"add\" and \"lw\" instruction(s): "
+
+	displayInstructionCounterforMain: .asciiz "\nThe results of the InstructionCounter subprogram for the main can be found below:\n\n"
+	displayInstructionCounterforMainEnd: .asciiz "\nThe InstructionCounter subprogram for the main is ENDED."
+	
+	displayInstructionCounterforInstructionCounter: .asciiz "\nThe results of the InstructionCounter subprogram for the InstructionCounter can be found below:\n\n"
+	displayInstructionCounterforInstructionCounterEnd: .asciiz "\nThe InstructionCounter subprogram for the InstructionCounter is ENDED."
+
+	newLine: .asciiz "\n"
+	line: .asciiz "----------------------------------------"
+	
+.text	
+	initial:
+		li $v0, 4
+		la $a0, welcomeMessage
+		syscall
+		
+	main:
+		# For main,
+		# $s0 carries the number of add instruction(s) which is/are counted on the InstructionCounter
+		# $s1 carries the number of lw instruction(s) which is/are counted on the InstructionCounter
+		# $s2 carries the number of both add lw instrucion(s) which is/are counted on the InstructionCounter.
+		
+		# Print displayInstructionCounterforMain
+		li $v0, 4
+		la $a0, displayInstructionCounterforMain
+		syscall
+		
+		# Setting parameters to count the instruction in the main
+		la $a0, main 
+		la $a1, mainEnd
+		
+		jal InstructionCounter 
+		
+		add $s0, $zero, $v0
+		add $s1, $zero, $v1
+		add $s2, $s0, $s1
+		
+		# Print displayInstructionCounterforMainEnd
+		li $v0, 4
+		la $a0, displayInstructionCounterforMainEnd
+		syscall
+		
+		# Twice New Line
+		li $v0, 4
+		la $a0, newLine
+		syscall
+		li $v0, 4
+		la $a0, newLine
+		syscall
+		
+		# Line
+		li $v0, 4
+		la $a0, line
+		syscall
+		
+		# Twice New Line
+		li $v0, 4
+		la $a0, newLine
+		syscall
+		li $v0, 4
+		la $a0, newLine
+		syscall
+		
+		# Print displayInstructionCounterforInstructionCounter
+		li $v0, 4
+		la $a0, displayInstructionCounterforInstructionCounter
+		syscall
+		
+		# Setting parameters to count the instruction in the InstructionCounter
+		la $a0, InstructionCounter 
+		la $a1, lastInstructionOfSubProgram
+		
+		jal InstructionCounter 
+		
+		add $s0, $zero, $v0
+		add $s1, $zero, $v1
+		add $s2, $s0, $s1
+	
+		# Print displayInstructionCounterforInstructionCounterEnd
+		li $v0, 4
+		la $a0, displayInstructionCounterforInstructionCounterEnd
+		syscall
+	
+	
+	mainEnd:	
+		j final
+	
+	
+	InstructionCounter:
+		# Store $s0 on stack
+		addi $sp, $sp, -4
+		sw $s0, 0($sp)
+	
+		add $s0, $zero, $a0 # First address
+		
+		# Store $s1 on stack
+		addi $sp, $sp, -4
+		sw $s1, 0($sp)
+	
+		add $s1, $zero, $a1 # Last address
+		
+		# Store $s2 on stack
+		addi $sp, $sp, -4
+		sw $s2, 0($sp)
+		
+		# Store $s3 on stack
+		addi $sp, $sp, -4
+		sw $s3, 0($sp)
+		
+		add $s3, $zero, $zero # s3 add counter
+		
+		# Store $s4 on stack
+		addi $sp, $sp, -4
+		sw $s4, 0($sp)
+		
+		add $s4, $zero, $zero # s4 lw counter
+		
+		# Store $s6 on stack
+		addi $sp, $sp, -4
+		sw $s6, 0($sp)
+		
+		add $s6, $zero, $zero # $s6 function
+		
+		for:
+			beq $s0, $s1, forEnd
+			
+			lw $s2, 0($s0)
+			
+			# Creating mask  # $s6 = 111111 (6 bits)
+			addi $s6, $zero, 63
+			
+			# $s6 = function
+			and $s6, $s2, $s6
+			
+			# Getting opcode
+			srl $s2, $s2, 26		
+					
+			# if opcode == 000000 (0), to count add instruction
+			beq $s2, 0, foundAdd
+			
+			j forCont
+			foundAdd:
+				# if function == 100000
+				beq $s6, 32, increaseAddCounter
+				j forCont
+				increaseAddCounter:				
+					addi $s3, $s3, 1
+					j forCont
+				j forCont	
+				
+		forCont:		
+			
+			# if opcode == 100011 (35), to count lw instruction
+			beq $s2, 35, foundLw
+			j forCont2
+			
+			foundLw:
+				addi $s4, $s4, 1
+				j forCont2
+			
+		forCont2:					
+			addi $s0, $s0, 4
+			j for
+			
+		forEnd:
+			# Show total add instruction
+			li $v0, 4
+			la $a0, totalAddInstructions
+			syscall
+			
+			li $v0, 1
+			add $a0, $zero, $s3
+			syscall
+			
+			# New Line
+			li $v0, 4
+			la $a0, newLine
+			syscall
+			
+			# Show total lw instruction
+			li $v0, 4
+			la $a0, totalLwInstructions
+			syscall
+			
+			li $v0, 1
+			add $a0, $zero, $s4
+			syscall
+			
+			# New Line
+			li $v0, 4
+			la $a0, newLine
+			syscall
+			
+			# Total both add and lw instruction
+			
+			# Store $s5 on stack
+			addi $sp, $sp, -4
+			sw $s5, 0($sp)
+			
+			add $s5, $s4, $s3
+			
+			li $v0, 4
+			la $a0, totalInstructions
+			syscall
+			
+			li $v0, 1
+			add $a0, $zero, $s5
+			syscall
+			
+			# New Line
+			li $v0, 4
+			la $a0, newLine
+			syscall
+			
+			# $v0 = total add instruction(s)
+			add $v0, $zero, $s3
+			
+			# $v1 = total lw instruction(s)
+			add $v1, $zero, $s4
+			
+			# Restore $s5 from stack
+			lw $s5, 0($sp)
+			addi $sp, $sp, 4
+			
+			# Restore $s6 from stack
+			lw $s6, 0($sp)
+			addi $sp, $sp, 4
+			
+			# Restore $s4 from stack
+			lw $s4, 0($sp)
+			addi $sp, $sp, 4
+	
+			# Restore $s3 from stack
+			lw $s3, 0($sp)
+			addi $sp, $sp, 4
+			
+			# Restore $s2 from stack
+			lw $s2, 0($sp)
+			addi $sp, $sp, 4
+			
+			# Restore $s1 from stack
+			lw $s1, 0($sp)
+			addi $sp, $sp, 4
+			
+			# Restore $s0 from stack
+			lw $s0, 0($sp)
+			addi $sp, $sp, 4
+	lastInstructionOfSubProgram:	
+			jr $ra
+	
+			
+	final:
+		li $v0, 10
+		syscall
+
+# End of PART 1 #
+
+
+# PART 2 #
+
+# Metehan Sacakci - 21802788
+
+.data
+	welcomeMessage: .asciiz "Welcome to the Lab 3 - Part 2\n"
+	requestNumbers: .asciiz "\n\nPlease enter two numbers one by one and consider that first number will be dividend and second number will be divisor:\nHowever, if you would like to quit please press enter -1.\n"
+	quotientMessage: .asciiz "Quotient: "
+	remainderMessage: .asciiz "Remainder: "
+	
+	zeroDivisorMessage: .asciiz "\nWarning: You are entered divisor as zero which is not correct input!\n"
+	
+	newLine: .asciiz "\n"
+	
+
+.text
+	initial:
+		# Print welcome message
+		li $v0, 4
+		la $a0, welcomeMessage
+		syscall
+
+	main:
+		# For main,
+		# $s0 register carries the dividend
+		# $s1 register carries the divisor
+		# $s2 register carries the quotient
+		# $s3 register carries the remainder
+		
+		# Request the numbers
+		li $v0, 4
+		la $a0, requestNumbers
+		syscall
+		
+		# Get dividend
+		li $v0, 5
+		syscall
+		
+		# Quit checker
+		beq $v0, -1, final
+		
+		move $s0, $v0
+		
+		# Get divisor
+		li $v0, 5
+		syscall
+		
+		move $s1, $v0
+		
+		# Setting parameters		
+		add $a0, $zero, $s0
+		add $a1, $zero, $s1
+		
+		jal recursiveDivision
+		
+		add $s2, $zero, $v0
+		add $s3, $zero, $v1
+		
+		# Printing quotient
+		li $v0, 4
+		la $a0, quotientMessage
+		syscall
+		
+		li $v0, 1
+		add $a0, $zero, $s2
+		syscall
+		
+		# Skip to next line
+		li $v0, 4
+		la $a0, newLine
+		syscall
+		
+		# Printing remainder
+		li $v0, 4
+		la $a0, remainderMessage
+		syscall
+		
+		li $v0, 1
+		add $a0, $zero, $s3
+		syscall		
+		
+		j main
+		
+	recursiveDivision:
+		# make room on stack for $a0, $a1, $s0, $s1, $s2, $s3, $ra and store them.
+		addi $sp, $sp, -28
+		sw $a0, 24($sp)
+		sw $a1, 20($sp)
+		sw $s0, 16($sp)
+		sw $s1, 12($sp)
+		sw $s2, 8($sp)
+		sw $s3, 4($sp)
+		sw $ra, 0($sp)
+		
+		# Base case
+		# if( ($a0 - $a1 <= 0))
+		sub $s2, $a0, $a1
+		
+		beq $a1, $zero, BaseCase1
+		j elseIf1
+		
+		BaseCase1:
+			# Warning Message
+			li $v0, 4
+			la $a0, zeroDivisorMessage
+			syscall
+		
+			#return 0
+			add $v0, $zero, $zero
+			add $v1, $zero, $zero		
+						
+			# Restore $a0, $a1, $s0, $s1, $s2, $s3, $ra
+			lw $ra, 0($sp)
+			lw $s3, 4($sp)
+			lw $s2, 8($sp)
+			lw $s1, 12($sp)
+			lw $s0, 16($sp)
+			lw $a1, 20($sp)
+			lw $a0, 24($sp)
+			addi $sp, $sp, 28
+			
+			jr $ra
+			
+		elseIf1:
+			blt $a0, $a1, BaseCase2
+			j elseIf2
+			
+		BaseCase2:
+			#return 0
+			add $v0, $zero, $zero
+			add $v1, $zero, $a0
+			
+			# Restore $a0, $a1, $s0, $s1, $s2, $s3, $ra
+			lw $ra, 0($sp)
+			lw $s3, 4($sp)
+			lw $s2, 8($sp)
+			lw $s1, 12($sp)
+			lw $s0, 16($sp)
+			lw $a1, 20($sp)
+			lw $a0, 24($sp)
+			addi $sp, $sp, 28
+			
+			jr $ra
+			
+		elseIf2:
+			beq $a1, 1, BaseCase3
+			j elseIf3
+		
+		BaseCase3:
+			#return 0
+			add $v0, $zero, $a0
+			add $v1, $zero, $zero
+			
+			# Restore $a0, $a1, $s0, $s1, $s2, $s3, $ra
+			lw $ra, 0($sp)
+			lw $s3, 4($sp)
+			lw $s2, 8($sp)
+			lw $s1, 12($sp)
+			lw $s0, 16($sp)
+			lw $a1, 20($sp)
+			lw $a0, 24($sp)
+			addi $sp, $sp, 28
+			
+			jr $ra
+		
+		elseIf3:		
+			ble $s2, $zero, BaseCase4
+			j else
+			
+		BaseCase4:
+			# return 1
+			addi $v0, $zero, 1	
+				
+			sub $v1, $a0, $a1
+			
+			# Restore $a0, $a1, $s0, $s1, $s2, $s3, $ra
+			lw $ra, 0($sp)
+			lw $s3, 4($sp)
+			lw $s2, 8($sp)
+			lw $s1, 12($sp)
+			lw $s0, 16($sp)
+			lw $a1, 20($sp)
+			lw $a0, 24($sp)
+			addi $sp, $sp, 28
+			
+			jr $ra
+			
+		# Else
+		else:
+			# Recursive call			
+			sub $a0, $a0, $a1
+			
+			# recursiveDivision( $a0 - $a1, $a1)
+			jal recursiveDivision
+			 
+			# Restore $a0, $a1, $s0, $s1, $s2, $s3, $ra
+			lw $ra, 0($sp)
+			lw $s3, 4($sp)
+			lw $s2, 8($sp)
+			lw $s1, 12($sp)
+			lw $s0, 16($sp)
+			lw $a1, 20($sp)
+			lw $a0, 24($sp)
+			
+			addi $sp, $sp, 28
+			
+			addi $v0, $v0, 1
+			
+			jr $ra
+			
+		
+	
+	final:
+		li $v0, 10
+		syscall
+	
+
+# End of PART 2 #
+
+# Part 3 #
+
+# Metehan Sacakci - 21802788
+	.data
+		DisplayReverseOrderRecursivelyInitial: .asciiz "\n\n Subprogram \" DisplayReverseOrderRecursively\" is initializing now\n\n"
+		
+		newLine: .asciiz "\n"
+		
+	.text
+		main:
+			# For main,
+			# $s0 carries the linked list's first element's address
+	
+			# CS224 Spring 2021, Program to be used in Lab3
+			# February 23, 2021
+			# 
+			li	$a0, 10 	#create a linked list with 10 nodes
+			jal	createLinkedList
+			
+			add $s0, $zero, $v0
+	
+			# Linked list is pointed by $v0
+			move	$a0, $v0	# Pass the linked list address in $a0
+			jal 	printLinkedList
+	
+			# Before initilize DisplayReverseOrderRecursively print warning message
+			li $v0, 4
+			la $a0, DisplayReverseOrderRecursivelyInitial
+			syscall
+			
+			# Setting parameter and calling the DisplayReverseOrderRecursively
+			add $a0, $zero, $s0
+			jal DisplayReverseOrderRecursively
+			
+			# Stop. 
+			li	$v0, 10
+			syscall
+			
+		DisplayReverseOrderRecursively:
+			# Store $ra on stack
+			addi $sp, $sp, -4
+			sw $ra, 0($sp)
+			
+			# Store $a0 on stack
+			addi $sp, $sp, -4
+			sw $a0, 0($sp)
+			
+			# Store $a1 on stack
+			addi $sp, $sp, -4
+			sw $a1, 0($sp)
+			
+			# if ( counter == 10 ) go to base case
+			beq $a1, 10, BaseCase
+			j callDisplayReverseOrderRecursive
+			
+			BaseCase:
+				
+				# Restore $a1 from stack
+				lw $a1, 0($sp)
+				addi $sp, $sp, 4
+				
+				# Restore $a0 from stack
+				lw $a0, 0($sp)
+				addi $sp, $sp, 4
+				
+				# Restore $ra from stack
+				lw $ra, 0($sp)
+				addi $sp, $sp, 4
+										
+				jr $ra
+					
+		callDisplayReverseOrderRecursive:
+						
+			addi $a0, $a0, 8
+			addi $a1, $a1, 1
+			
+			jal DisplayReverseOrderRecursively
+			
+			# Restore $a1 from stack
+			lw $a1, 0($sp)
+			addi $sp, $sp, 4
+				
+			# Restore $a0 from stack
+			lw $a0, 0($sp)
+			addi $sp, $sp, 4
+				
+			# Restore $ra from stack
+			lw $ra, 0($sp)
+			addi $sp, $sp, 4
+			
+			# $s0 data on the node
+			lw $s0, 4($a0)
+			
+			# $s1 address on the node
+			add $s1, $zero, $a0
+			
+			li $v0, 4
+			la $a0, line
+			syscall
+			
+			li $v0, 4
+			la $a0, newLine
+			syscall
+			
+			li $v0, 4
+			la $a0, nodeNumberLabel
+			syscall
+			
+			li $v0, 1
+			addi $a0, $a1, 1
+			syscall
+			
+			li $v0, 4
+			la $a0, newLine
+			syscall
+			
+			li $v0, 4
+			la $a0, addressOfCurrentNodeLabel
+			syscall
+			
+			li $v0, 34
+			add $a0, $zero, $s1
+			syscall
+			
+			li $v0, 4
+			la $a0, newLine
+			syscall
+			
+			li $v0, 4
+			la $a0, addressOfNextNodeLabel
+			syscall
+			
+			li $v0, 34
+			add $a0, $zero, $s1
+			addi $a0, $a0, 8
+			syscall
+			
+			li $v0, 4
+			la $a0, newLine
+			syscall
+			
+			li $v0, 4
+			la $a0, dataValueOfCurrentNode
+			syscall
+			
+			li $v0, 1
+			add $a0, $zero, $s0
+			syscall
+			
+			li $v0, 4
+			la $a0, newLine
+			syscall					
+			
+			jr $ra			
+
+createLinkedList:
+# $a0: No. of nodes to be created ($a0 >= 1)
+# $v0: returns list head
+# Node 1 contains 4 in the data field, node i contains the value 4*i in the data field.
+# By 4*i inserting a data value like this
+# when we print linked list we can differentiate the node content from the node sequence no (1, 2, ...).
+	addi	$sp, $sp, -24
+	sw	$s0, 20($sp)
+	sw	$s1, 16($sp)
+	sw	$s2, 12($sp)
+	sw	$s3, 8($sp)
+	sw	$s4, 4($sp)
+	sw	$ra, 0($sp) 	# Save $ra just in case we may want to call a subprogram
+	
+	move	$s0, $a0	# $s0: no. of nodes to be created.
+	li	$s1, 1		# $s1: Node counter
+# Create the first node: header.
+# Each node is 8 bytes: link field then data field.
+	li	$a0, 8
+	li	$v0, 9
+	syscall
+# OK now we have the list head. Save list head pointer 
+	move	$s2, $v0	# $s2 points to the first and last node of the linked list.
+	move	$s3, $v0	# $s3 now points to the list head.
+	sll	$s4, $s1, 2	
+# sll: So that node 1 data value will be 4, node i data value will be 4*i
+	sw	$s4, 4($s2)	# Store the data value.
+	
+addNode:
+# Are we done?
+# No. of nodes created compared with the number of nodes to be created.
+	beq	$s1, $s0, allDone
+	addi	$s1, $s1, 1	# Increment node counter.
+	li	$a0, 8 		# Remember: Node size is 8 bytes.
+	li	$v0, 9
+	syscall
+# Connect the this node to the lst node pointed by $s2.
+	sw	$v0, 0($s2)
+# Now make $s2 pointing to the newly created node.
+	move	$s2, $v0	# $s2 now points to the new node.
+	sll	$s4, $s1, 2	
+# sll: So that node 1 data value will be 4, node i data value will be 4*i
+	sw	$s4, 4($s2)	# Store the data value.
+	j	addNode
+allDone:
+# Make sure that the link field of the last node cotains 0.
+# The last node is pointed by $s2.
+	sw	$zero, 0($s2)
+	move	$v0, $s3	# Now $v0 points to the list head ($s3).
+	
+# Restore the register values
+	lw	$ra, 0($sp)
+	lw	$s4, 4($sp)
+	lw	$s3, 8($sp)
+	lw	$s2, 12($sp)
+	lw	$s1, 16($sp)
+	lw	$s0, 20($sp)
+	addi	$sp, $sp, 24
+	
+	jr	$ra
+#=========================================================
+printLinkedList:
+# Print linked list nodes in the following format
+# --------------------------------------
+# Node No: xxxx (dec)
+# Address of Current Node: xxxx (hex)
+# Address of Next Node: xxxx (hex)
+# Data Value of Current Node: xxx (dec)
+# --------------------------------------
+
+# Save $s registers used
+	addi	$sp, $sp, -20
+	sw	$s0, 16($sp)
+	sw	$s1, 12($sp)
+	sw	$s2, 8($sp)
+	sw	$s3, 4($sp)
+	sw	$ra, 0($sp) 	# Save $ra just in case we may want to call a subprogram
+
+# $a0: points to the linked list.
+# $s0: Address of current
+# s1: Address of next
+# $2: Data of current
+# $s3: Node counter: 1, 2, ...
+	move $s0, $a0	# $s0: points to the current node.
+	li   $s3, 0
+printNextNode:
+	beq	$s0, $zero, printedAll
+				# $s0: Address of current node
+	lw	$s1, 0($s0)	# $s1: Address of  next node
+	lw	$s2, 4($s0)	# $s2: Data of current node
+	addi	$s3, $s3, 1
+# $s0: address of current node: print in hex.
+# $s1: address of next node: print in hex.
+# $s2: data field value of current node: print in decimal.
+	la	$a0, line
+	li	$v0, 4
+	syscall		# Print line seperator
+	
+	la	$a0, nodeNumberLabel
+	li	$v0, 4
+	syscall
+	
+	move	$a0, $s3	# $s3: Node number (position) of current node
+	li	$v0, 1
+	syscall
+	
+	la	$a0, addressOfCurrentNodeLabel
+	li	$v0, 4
+	syscall
+	
+	move	$a0, $s0	# $s0: Address of current node
+	li	$v0, 34
+	syscall
+
+	la	$a0, addressOfNextNodeLabel
+	li	$v0, 4
+	syscall
+	move	$a0, $s1	# $s0: Address of next node
+	li	$v0, 34
+	syscall	
+	
+	la	$a0, dataValueOfCurrentNode
+	li	$v0, 4
+	syscall
+		
+	move	$a0, $s2	# $s2: Data of current node
+	li	$v0, 1		
+	syscall	
+
+# Now consider next node.
+	move	$s0, $s1	# Consider next node.
+	j	printNextNode
+printedAll:
+# Restore the register values
+	lw	$ra, 0($sp)
+	lw	$s3, 4($sp)
+	lw	$s2, 8($sp)
+	lw	$s1, 12($sp)
+	lw	$s0, 16($sp)
+	addi	$sp, $sp, 20
+	jr	$ra
+#=========================================================		
+	.data
+line:	
+	.asciiz "\n --------------------------------------"
+
+nodeNumberLabel:
+	.asciiz	"\n Node No.: "
+	
+addressOfCurrentNodeLabel:
+	.asciiz	"\n Address of Current Node: "
+	
+addressOfNextNodeLabel:
+	.asciiz	"\n Address of Next Node: "
+	
+dataValueOfCurrentNode:
+	.asciiz	"\n Data Value of Current Node: "
+	
+	
+	
+# End of Part 3 #	
